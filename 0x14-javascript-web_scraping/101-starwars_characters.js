@@ -1,30 +1,41 @@
 #!/usr/bin/node
-const request = require('request');
-const url = 'http://swapi.co/api/films/';
-let id = parseInt(process.argv[2], 10);
-let characters = [];
 
-request(url, function (err, response, body) {
-  if (err == null) {
-    const resp = JSON.parse(body);
-    const results = resp.results;
-    if (id < 4) {
-      id += 3;
-    } else {
-      id -= 3;
-    }
-    for (let i = 0; i < results.length; i++) {
-      if (results[i].episode_id === id) {
-        characters = results[i].characters;
-        break;
-      }
-    }
-    for (let j = 0; j < characters.length; j++) {
-      request(characters[j], function (err, response, body) {
-        if (err == null) {
-          console.log(JSON.parse(body).name);
-        }
-      });
-    }
+const request = require('request');
+
+const movieId = process.argv[2];
+const url = `https://swapi.dev/api/films/${movieId}/`;
+
+request.get(url, { json: true }, (error, response, data) => {
+  if (error) {
+    console.error(error);
+    return;
   }
+
+  const characters = data.characters;
+  const characterNames = [];
+  const characterUrls = [...characters]; // Copy the array to preserve the order
+
+  // Function to fetch character data and push the name in the correct order
+  function fetchCharacterData () {
+    const characterUrl = characterUrls.shift();
+    if (!characterUrl) {
+      // All characters processed, print the names
+      console.log(characterNames.join('\n'));
+      return;
+    }
+
+    request.get(characterUrl, { json: true }, (error, response, characterData) => {
+      if (error) {
+        console.error(error);
+      } else {
+        characterNames.push(characterData.name);
+      }
+
+      // Fetch the next character's data
+      fetchCharacterData();
+    });
+  }
+
+  // Start fetching character data
+  fetchCharacterData();
 });
