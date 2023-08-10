@@ -1,18 +1,28 @@
 #!/usr/bin/node
+
 const request = require('request');
 
-request(process.argv[2], function (err, response, body) {
-  if (err == null) {
-    const resp = {};
-    const json = JSON.parse(body);
-    for (let i = 0; i < json.length; i++) {
-      if (json[i].completed === true) {
-        if (resp[json[i].userId] === undefined) {
-          resp[json[i].userId] = 0;
-        }
-        resp[json[i].userId]++;
+const apiUrl = process.argv[2];
+
+request.get(apiUrl, { json: true }, (error, response, tasksData) => {
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  // Initialize an object to keep track of completed tasks for each user ID
+  const completedTasksByUserId = {};
+
+  // Loop through each task to count completed tasks for each user ID
+  tasksData.forEach((task) => {
+    if (task.completed) {
+      if (!completedTasksByUserId[task.userId]) {
+        completedTasksByUserId[task.userId] = 1;
+      } else {
+        completedTasksByUserId[task.userId]++;
       }
     }
-    console.log(resp);
-  }
+  });
+
+  console.log(completedTasksByUserId);
 });
